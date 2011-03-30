@@ -17,11 +17,11 @@ function JSONRPC(serverURL) {
 		req.open("POST", serverURL, true);
 		req.onreadystatechange = function() {
 			if(req.readyState == 4) { //Done loading response
-				if(req.status == 200) { //Executed successfully
+				if(req.status == 200 || req.status == 500) { //Executed successfully or function failed
 					var myResponse = JSON.parse(req.responseText);
 					delete myResponse.id;
 					responseHandler(myResponse);
-				} else { //Failed
+				} else { //Communication Failed
 					responseHandler({error: "Could not communicate with server."});
 				}
 			}
@@ -46,29 +46,42 @@ function JSONRPC(serverURL) {
 		req.setRequestHeader('Content-Length', contents.length);
 		req.setRequestHeader('Content-Type', 'application/json');
 		req.send(contents);
-		if(req.status == 200) { //Executed successfully
+		if(req.status == 200 || req.status == 500) { //Executed successfully, or function failed
 			var myResponse = JSON.parse(req.responseText);
-			delete myResponse.id;
-			return myResponse;
-		} else { //Failed
-			return {error: "Could not communicate with server."};
+			if(myResponse.error) {
+				throw myResponse.error;
+			} else {
+				return myResponse.result;
+			}
+		} else { //Communication unsuccessful
+			throw "Could not communicate with server.";
 		}
 	};
 	this.register = function(method) {
-		this[method] = function() {
-			var theArgs = []; //Copy arguments into a normal array object
-			for(var i in arguments) {
-				theArgs[i] = arguments[i];
-			}
-			this.request.apply(this, [].concat(method, theArgs));
+		var self = this;
+		var singleReg = function(method) {
+			self[method] = function() {
+				var theArgs = []; //Copy arguments into a normal array object
+				for(var i in arguments) {
+					theArgs[i] = arguments[i];
+				}
+				self.request.apply(self, [].concat(method, theArgs));
+			};
+			self[method + "Block"] = function() {
+				var theArgs = [2]; //Copy arguments into a normal array object
+				for(var i in arguments) {
+					theArgs[i] = arguments[i];
+				}
+				return self.requestBlock.apply(self, [].concat(method, theArgs));
+			};
 		};
-		this[method + "Block"] = function() {
-			var theArgs = [2]; //Copy arguments into a normal array object
-			for(var i in arguments) {
-				theArgs[i] = arguments[i];
+		if(typeof(method) == "object" && method.length) {
+			for(var i in method) {
+				singleReg(method[i]);
 			}
-			return this.requestBlock.apply(this, [].concat(method, theArgs));
-		};
+		} else {
+			singleReg(method);
+		}
 	};
 	return this;
 }
