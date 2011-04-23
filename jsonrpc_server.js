@@ -1,5 +1,5 @@
 //Didn't like either of the JSON-RPC servers. One had a nice syntax but was inflexible in allowing the server to provide more than just JSON-RPC functionality, the other was more flexible, but had an ugly syntax.
-//David Ellis 27 March 2011
+//David Ellis 27 March 2011 - 22 April 2011
 
 //The JSONRPC object
 function JSONRPC(scope) {
@@ -21,14 +21,38 @@ function JSONRPC(scope) {
 			if(data instanceof Object) {
 				if(data.method) { //Valid-enough to run
 					var result = "";
-					if(scope[data.method]) { //Does exist on the server
+					if(scope[data.method] && scope[data.method].nonblocking) { //Exists on server and is nonblocking
+						var callback = function(result, error) {
+							if(data.id) {
+								self.returnVal(response, {result:result, error:error, id:data.id});
+							} else {
+								self.returnVal(response, {result:result, error:error});
+							}
+						};
+						try {
+							if(data.params && data.params instanceof Array) {
+								data.params.push(callback);
+								scope[data.method].apply(scope, data.params);
+							} else if(data.params) {
+								scope[data.method].apply(scope, [data.params, callback]);
+							} else {
+								scope[data.method].apply(scope, [callback]);
+							}
+						} catch(e) {
+							if(data.id) {
+								self.returnVal(response, {result:null, error:e, id:data.id});
+							} else {
+								self.returnVal(response, {result:null, error:e});
+							}
+						}
+					} else if(scope[data.method]) { //Exists on the server and is blocking
 						try {
 							if(data.params && data.params instanceof Array) {
 								result = scope[data.method].apply(scope, data.params);
 							} else if(data.params) {
-								result = self[data.method].apply(scope, [data.params]);
+								result = scope[data.method].apply(scope, [data.params]);
 							} else {
-								result = self[data.method].apply(scope, []);
+								result = scope[data.method].apply(scope, []);
 							}
 							if(data.id) {
 								self.returnVal(response, {result:result, error:null, id:data.id});
@@ -79,7 +103,7 @@ function JSONRPC(scope) {
 }
 
 //Exporting object for use in Node.js apps
-exports.JSONRPC = JSONRPC; //In case anyone wants to extent the object
+exports.JSONRPC = JSONRPC; //In case anyone wants to extend the object
 exports.createJSONRPCserver = function(scope) { //Helper function for constructing the object
 	return new JSONRPC(scope);
 };

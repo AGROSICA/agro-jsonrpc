@@ -1,5 +1,8 @@
 //Didn't like any available JSON-RPC clients for browsers, so I wrote my own.
-//David Ellis 27 March 2011
+//David Ellis 27 March 2011 - 22 April 2011
+if(typeof window === 'undefined') { //Load the XMLHttpRequest object when on Node.js
+	var XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
+}
 function JSONRPC(serverURL) {
 	this.request = function() {
 		var method = arguments[0];
@@ -22,7 +25,7 @@ function JSONRPC(serverURL) {
 					delete myResponse.id;
 					responseHandler(myResponse);
 				} else { //Communication Failed
-					responseHandler({error: "Could not communicate with server."});
+					responseHandler({error: "Status " + req.status + ": Could not communicate with server."});
 				}
 			}
 		};
@@ -84,4 +87,10 @@ function JSONRPC(serverURL) {
 		}
 	};
 	return this;
+}
+if(typeof window === 'undefined') { ///Node.js module export definition, just ignore when used in the browser
+	exports.JSONRPC = JSONRPC; //In case anyone wants to extend the object
+	exports.createJSONRPCclient = function(scope) { //Helper function for constructing the object
+		return new JSONRPC(scope);
+	};
 }
