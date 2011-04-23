@@ -81,6 +81,7 @@ function JSONRPC(scope) {
 		if(retVal.id || this.debug) {
 			var outString = JSON.stringify(retVal);
 			response.writeHead(retVal.error?500:200, {
+				"Access-Control-Allow-Origin": "*",
 				"Content-Length": outString.length,
 				"Content-Type": "application/json"
 			});
