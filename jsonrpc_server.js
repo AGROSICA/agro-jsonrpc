@@ -103,8 +103,14 @@ function JSONRPC(scope) {
 	return this;
 }
 
+function nonblocking(func) {
+	func.nonblocking = true;
+	return func;
+}
+
 //Exporting object for use in Node.js apps
 exports.JSONRPC = JSONRPC; //In case anyone wants to extend the object
+exports.nonblocking = nonblocking;
 exports.createJSONRPCserver = function(scope) { //Helper function for constructing the object
 	return new JSONRPC(scope);
 };
