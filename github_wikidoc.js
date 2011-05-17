@@ -14,7 +14,7 @@ if(process.argv.length != 3) {
 	process.exit(1);
 }
 
-// Grab the source file (assumed to be Javascript, may work with other sources
+// Grab the source file (assumed to be Javascript)
 var myFile = fs.readFileSync(process.argv[2], 'utf8');
 
 // Break the file into lines of source for regex parsing
@@ -25,18 +25,22 @@ var lines = myFile.split("\n");
 // results
 var prevLine = null;
 lines.forEach(function(line, loc, arr) {
-	if(line.match(/^\s*\/\/\s?/)) {
+	if(line.match(/^\s*\/\/\s?/) || line == "") {
 		arr[loc] = line.replace(/^\s*\/\/\s?/, "");
 		if(prevLine == "code") {
-			arr[loc] = "\n" + arr[loc];
+			arr[loc] = "```\n" + arr[loc];
 		}
 		prevLine = "comment";
 	} else {
 		arr[loc] = "    " + line;
-		if(prevLine == "comment") {
-			arr[loc] = "\n" + arr[loc];
+		if(prevLine == "comment" || prevLine == null) {
+			arr[loc] = "```js\n" + arr[loc];
 		}
 		prevLine = "code";
 	}
 	console.log(arr[loc]);
 });
+// Final check to see if the document ended with a code block and close it.
+if(prevLine == "code") {
+	console.log("```");
+}
