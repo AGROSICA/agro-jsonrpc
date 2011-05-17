@@ -28,7 +28,7 @@ lines.forEach(function(line, loc, arr) {
 	if(line.match(/^\s*\/\/\s?/) || line == "") {
 		arr[loc] = line.replace(/^\s*\/\/\s?/, "");
 		if(prevLine == "code") {
-			arr[loc] = "```\n" + arr[loc];
+			arr[loc] = "```\n\n" + arr[loc];
 		}
 		prevLine = "comment";
 	} else {
