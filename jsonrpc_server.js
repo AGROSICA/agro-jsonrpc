@@ -1,27 +1,56 @@
-//Didn't like either of the JSON-RPC servers. One had a nice syntax but was inflexible in allowing the server to provide more than just JSON-RPC functionality, the other was more flexible, but had an ugly syntax.
-//David Ellis 27 March 2011 - 22 April 2011
+// # The Agrosica JSON-RPC Server
+// Designed to work in *Node.js*. There are a few Node.js JSON-RPC servers on
+// [GitHub](http://www.github.com) already, but all required a fairly extensive
+// set of modifications to the RPC methods so they didn't look *natural*, and
+// therefore reusable internally, if desired, while this server makes that its
+// primary design goal. This JSON-RPC client is currently JSON-RPC 1.0 compliant.
+// Will add 2.0 compatibility if this is determined to be important.
 
-//The JSONRPC object
+// ## The JSONRPC constructor
+// Each JSON-RPC object is tied to a *scope*, an object containing functions to
+// call. If not passed an explicit scope, *Node.js*' *root* scope will be used.
+// Also, unlike the Javascript running in web browsers, functions not explicity
+// assigned to a scope are attached to attached to the anonymous scope block only
+// and cannot be accessed even from the *root* scope.
 function JSONRPC(scope) {
-	var DATA = "";
+	// ### The *handleJSON* function
+	// makes up the majority of the JSON-RPC server logic, handling the requests
+	// from clients, passing the call to the correct function, catching any
+	// errors the function may throw, and calling the function to return the
+	// results back to the client.
 	this.handleJSON = function(request, response) {
 		var self = this;
+		var DATA = "";
+		// In order to handle uploaded data from the client, event handlers for
+		// each received block of data and the end of the POST block must exist.
+		// As JSON-RPC is a text-based protocol, utf8 is the encoding method,
+		// and simply each *chunk* of data is concatenated onto a private
+		// variable. The rest of the *handleJSON* function is defined in the
+		// *end* event handler
 		request.setEncoding('utf8');
 		request.addListener('data', function(chunk) {
 			DATA += chunk;
 		});
 		request.addListener('end', function() {
+			// Once the data has been loaded, it is parsed into a JSON object or
+			// reverted to an empty string (to indicate that an error message
+			// should be returned).
 			var data = "";
 			try {
 				data = JSON.parse(DATA);
-				DATA = "";
 			} catch(e) {
-				data = ""; //Will be handled below
+				data = "";
 			}
+			// Assuming the JSON object was built, we incrementally validate it
+			// to determine the exact call mechanism to be used.
 			if(data instanceof Object) {
-				if(data.method) { //Valid-enough to run
+				if(data.method) {
 					var result = "";
-					if(scope[data.method] && scope[data.method].nonblocking) { //Exists on server and is nonblocking
+					// If the method is defined in the scope and is marked as a
+					// nonblocking function, then a callback must be defined for
+					// the function. The callback takes two parameters: the
+					// *result* of the function, and an *error* message.
+					if(scope[data.method] && scope[data.method].nonblocking) {
 						var callback = function(result, error) {
 							if(data.id) {
 								self.returnVal(response, {result:result, error:error, id:data.id});
@@ -29,6 +58,11 @@ function JSONRPC(scope) {
 								self.returnVal(response, {result:result, error:error});
 							}
 						};
+						// This *try-catch* block seems pointless, since it is
+						// not possible to *catch* an error further into a
+						// *CPS* stack, but if the (normally short) blocking
+						// portion of the call throws an error, this will
+						// prevent the *Node.js* server from crashing.
 						try {
 							if(data.params && data.params instanceof Array) {
 								data.params.push(callback);
@@ -45,7 +79,15 @@ function JSONRPC(scope) {
 								self.returnVal(response, {result:null, error:e});
 							}
 						}
-					} else if(scope[data.method]) { //Exists on the server and is blocking
+					// A blocking function will *return* a value immediately or
+					// *throw* an error, so this portion consists only of a
+					// *try-catch* block, but is otherwise identical to the
+					// above nonblocking code. Because blocking code is a bad
+					// idea on Node.js, the *nonblocking* attribute should
+					// probably be reversed to a *blocking* attribute that must
+					// be explicitly stated, making the *nonblocking* behavior
+					// the default.
+					} else if(scope[data.method]) {
 						try {
 							if(data.params && data.params instanceof Array) {
 								result = scope[data.method].apply(scope, data.params);
@@ -66,6 +108,8 @@ function JSONRPC(scope) {
 								self.returnVal(response, {result:null, error:e});
 							}
 						}
+					// If the interpretation of the POSTed data fails at any
+					// point, be sure to return a meaningful error message.
 					} else {
 						self.returnVal(response, {result:null, error:"Requested method does not exist.", id:-1});
 					}
@@ -77,6 +121,15 @@ function JSONRPC(scope) {
 			}
 		});
 	};
+	// ### The *returnVal* function
+	// takes the *response* object and the JSON-RPC return object (*retVal*)
+	// and constructs the output string to return to the client and any
+	// necessary HTTP headers. The *Access-Control-Allow-Origin* header is
+	// necessary for modern versions of Firefox, however it is a completely
+	// useless header in my opinion, as the client must **opt-in** to the
+	// restrictions implied, and could therefore be ignored at any time. Thus,
+	// it has been set to allow all origin requests (since any restrictions
+	// would need to be enforced elsewhere in the server source code).
 	this.returnVal = function(response, retVal) {
 		if(retVal.id || this.debug) {
 			var outString = JSON.stringify(retVal);
@@ -90,27 +143,52 @@ function JSONRPC(scope) {
 			response.end();
 		}
 	};
+	// ### The *setScope* function
+	// simply allows the developer to change the scope of a JSON-RPC server
+	// after it has been created. This could be useful if each user was given
+	// its own JSON-RPC server object, and login credentials determined which
+	// RPC methods are allowed to the user, but this would produce odd
+	// "method not found" error messages and ought to live higher in the "stack"
 	this.setScope = function(newScope) { scope = newScope; };
+	// ### The *register* function
+	// allows one to attach a function to the current scope after the scope has
+	// been attached to the JSON-RPC server, for similar possible shenanigans as
+	// described above. This method in particular, though, by attaching new
+	// functions to the current scope, could be used for caching purposes or
+	// self-modifying code that rewrites its own definition.
 	this.register = function(methodName, method) {
 		if(!scope || typeof(scope) != "object") {
 			scope = {};
 		}
 		scope[methodName] = method;
 	};
+	// The actual object initialization occurs here. If the *scope* is not
+	// defined, the *root* scope is used, and then the object is returned to
+	// the developer.
 	if(!scope || typeof(scope) != "object") {
-		scope = root; //Note, this doesn't behave like in browsers, must explicitly declare functions in root to be in this scope
+		scope = root;
 	}
 	return this;
 }
-
+// ## The *nonblocking* function
+// attaches the *nonblocking* attribute to any function passed to it, and then
+// *return*s that function. This is used in the convention:
+//     var myRPCfunc = nonblocking(function() { ... });
+// This allows inline declaration of nonblocking RPC functions and produces a
+// naturally-self-documenting source
 function nonblocking(func) {
 	func.nonblocking = true;
 	return func;
 }
 
-//Exporting object for use in Node.js apps
-exports.JSONRPC = JSONRPC; //In case anyone wants to extend the object
+// Finally, the *JSONRPC* constructor, the *nonblocking* function, and a
+// *createJSONRPCserver* helper function are attached to the *exports* object
+// for other *Node.js* code to use.
+//
+// Until WebSockets are finalized, there is no need to get this working in web
+// browsers.
+exports.JSONRPC = JSONRPC;
 exports.nonblocking = nonblocking;
-exports.createJSONRPCserver = function(scope) { //Helper function for constructing the object
+exports.createJSONRPCserver = function(scope) {
 	return new JSONRPC(scope);
 };
