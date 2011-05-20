@@ -52,7 +52,7 @@ var controllerToPathHash = {};
 function loadControllers(controllerPath, controllerObj) {
 	if(path.existsSync(controllerPath)) {
 		if(path.existsSync(path.join(controllerPath, 'controllers.js'))) {
-			controllerObj = utils.mergeObjs(controllerObj, require(path.join(controllerPath, 'controller')));
+			controllerObj = utils.mergeObjs(controllerObj, require(path.join(path.resolve(controllerPath), 'controllers')));
 		}
 		var pathChildren = fs.readdirSync(controllerPath);
 		for(var child in pathChildren) {
@@ -77,8 +77,8 @@ function getController(controllers, controllerRoute) {
 	var controller = controllers;
 	var hierarchy = controllerRoute.split('.');
 	for(var level in hierarchy) {
-		if(controller[level]) {
-			controller = controller[level];
+		if(controller[hierarchy[level]]) {
+			controller = controller[hierarchy[level]];
 		} else {
 			throw "Invalid Controller Path Found: " + hierarchy;
 		}
@@ -94,7 +94,7 @@ function getController(controllers, controllerRoute) {
 function buildRoutes(express, controllers, routeObj, currPath) {
 	for(var route in routeObj) {
 		if(typeof(routeObj[route]) == "string") {
-			var routeUrl = path.join(currPath, route);
+			var routeUrl = currPath != "" ? currPath + "." + route : route;
 			var controller = getController(controllers, routeObj[route]);
 			if(controller.httpMethod && typeof(controller.httpMethod) == "string") {
 				express[controller.httpMethod](routeUrl, controller);
@@ -120,8 +120,7 @@ exports.registerRoutes = function(express, pathToControllerTree, controllerPath)
 		throw "Path must be a string or not included";
 	}
 	var controllers = loadControllers(controllerPath, {});
-	buildRoutes(express, controllers, controllerPath, "");
-
+	buildRoutes(express, controllers, pathToControllerTree, "");
 };
 
 // ## The *getControllerUrl* function
@@ -133,7 +132,7 @@ exports.getControllerUrl = function(controller, params) {
 		thePath = thePath.replace(new RegExp(":" + param + "\??", "g"), params[param]);
 	}
 	thePath = thePath.replace(/:[^\?]*\?/g, "");
-	if(thePath.match(/:/) {
+	if(thePath.match(/:/)) {
 		throw "Missing required parameter(s): " + thePath;
 	}
 	thePath = path.join("", thePath);
