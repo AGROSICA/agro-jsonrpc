@@ -56,12 +56,12 @@ function loadControllers(controllerPath, controllerObj) {
 		}
 		var pathChildren = fs.readdirSync(controllerPath);
 		for(var child in pathChildren) {
-			var childPath = path.resolve(path.join(controllerPath, child));
-			if(childPath == path.dirname(childPath)) { // Is a directory, not a file
-				if(!controllerObj[child]) {
-					controllerObj[child] = {};
+			var childPath = path.resolve(path.join(controllerPath, pathChildren[child]));
+			if(fs.statSync(childPath).isDirectory()) {
+				if(!controllerObj[pathChildren[child]]) {
+					controllerObj[pathChildren[child]] = {};
 				}
-				controllerObj[child] = loadControllers(childPath, controllerObj[child]);
+				controllerObj[pathChildren[child]] = loadControllers(childPath, controllerObj[pathChildren[child]]);
 			}
 		}
 	} else {
