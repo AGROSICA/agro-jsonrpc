@@ -1,6 +1,5 @@
-/**
- * @author countrodrigo
- */
+
+var sha2 = require('../common/SHA2');
 
 // ## The *mergeObjs* function
 // is a simple helper function to create a new object based on input objects.
@@ -53,3 +52,4 @@ function authenticateUser(userId, sessionCode, callback) {
 	}
 };
 exports.authenticateUser = authenticateUser;
+
