@@ -96,12 +96,13 @@ function buildRoutes(express, controllers, routeObj, currPath) {
 		if(typeof(routeObj[route]) == "string") {
 			var routeUrl = currPath != "" ? currPath + "." + route : route;
 			var controller = getController(controllers, routeObj[route]);
+			controllerToPathHash[routeObj[route]] = routeUrl;
+			routeUrl = routeUrl != '/' ? routeUrl.replace(/\/$/, "") : '/'; 
 			if(controller.httpMethod && typeof(controller.httpMethod) == "string") {
 				express[controller.httpMethod](routeUrl, controller);
 			} else {
 				express.all(routeUrl, controller);
 			}
-			controllerToPathHash[route] = routeUrl;
 		} else if(typeof(routeObj[route] == "object")) {
 			buildRoutes(express, controllers, route, routeUrl);
 		} else {
@@ -127,9 +128,12 @@ exports.registerRoutes = function(express, pathToControllerTree, controllerPath)
 // is the external API call that parses the path string in the
 // ``controllerToPathHash`` and generates an *absolute for the server* URL
 exports.getControllerUrl = function(controller, params) {
-	var thePath = controllerToPathHash(controller);
+	var thePath = controllerToPathHash[controller];
+	console.log(controllerToPathHash);
+	console.log(controller);
+	console.log(thePath);
 	for(var param in params) {
-		thePath = thePath.replace(new RegExp(":" + param + "\??", "g"), params[param]);
+		thePath = thePath.replace(new RegExp(":" + param + "\\?*", "g"), params[param]);
 	}
 	thePath = thePath.replace(/:[^\?]*\?/g, "");
 	if(thePath.match(/:/)) {
