@@ -1,5 +1,5 @@
 
-var sha2 = require('../common/SHA2');
+var sha2 = require('./SHA2');
 
 // ## The *mergeObjs* function
 // is a simple helper function to create a new object based on input objects.
@@ -24,7 +24,7 @@ exports.mergeObjs = mergeObjs;
 // is provided by the *Registration* server a new *masterKey*, and this method
 // simply marks the current key as the old key and the newly-provided key as
 // the master key, and informs the *Registration* server that it was successful
-var setMasterKey = function(masterKey) {
+function setMasterKey(masterKey) {
 	global.registration.prevMasterKey = global.registration.currMasterKey;
 	global.registration.currMasterKey = masterKey;
 	return true;
