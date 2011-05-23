@@ -44,6 +44,7 @@ var utils = require('./utils');
 
 // A hash of controllers to URL Paths
 var controllerToPathHash = {};
+var defaultMethod = "get";
 
 // ## The *loadControllers* function
 // is a recursive function that ``require``s controllers as it traverses the
@@ -94,15 +95,16 @@ function getController(controllers, controllerRoute) {
 function buildRoutes(express, controllers, routeObj, currPath) {
 	for(var route in routeObj) {
 		if(typeof(routeObj[route]) == "string") {
+			var theMethod = defaultMethod;
 			var routeUrl = currPath != "" ? currPath + "." + route : route;
 			var controller = getController(controllers, routeObj[route]);
+			if(routeUrl.match(/^(get|post|put|del|all)/i)) {
+				theMethod = RegExp.$1.toLowerCase();
+				routeUrl = routeUrl.replace(/^(get|post|pul|del|all)/i, "");
+			}
 			controllerToPathHash[routeObj[route]] = routeUrl;
 			routeUrl = routeUrl != '/' ? routeUrl.replace(/\/$/, "") : '/'; 
-			if(controller.httpMethod && typeof(controller.httpMethod) == "string") {
-				express[controller.httpMethod](routeUrl, controller);
-			} else {
-				express.all(routeUrl, controller);
-			}
+			express[theMethod](routeUrl, controller);
 		} else if(typeof(routeObj[route] == "object")) {
 			buildRoutes(express, controllers, route, routeUrl);
 		} else {
@@ -129,9 +131,6 @@ exports.registerRoutes = function(express, pathToControllerTree, controllerPath)
 // ``controllerToPathHash`` and generates an *absolute for the server* URL
 exports.getControllerUrl = function(controller, params) {
 	var thePath = controllerToPathHash[controller];
-	console.log(controllerToPathHash);
-	console.log(controller);
-	console.log(thePath);
 	for(var param in params) {
 		thePath = thePath.replace(new RegExp(":" + param + "\\?*", "g"), params[param]);
 	}
@@ -143,14 +142,11 @@ exports.getControllerUrl = function(controller, params) {
 	return thePath;
 };
 
-// ## The *httpMethod* function
-// is a convenience function to attach the ``httpMethod`` property to the
-// given function. To be used by the controllers.js files.
-exports.httpMethod = function(func, theMethod) {
-	if(theMethod.match(/^(get|post|put|del|all)$/)) {
-		func.httpMethod = theMethod;
+// ## The *setDefaultMethod* function
+exports.setDefaultMethod = function(theMethod) {
+	if(theMethod.match(/^(get|post|put|del|all)$/i)) {
+		defaultMethod = theMethod.toLowerCase();
 	} else {
 		throw "Invalid HTTP method name: " + theMethod + ". Should be one of: get, post, put, del, or all.";
 	}
-	return func;
 };
