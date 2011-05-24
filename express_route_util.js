@@ -130,7 +130,7 @@ exports.registerRoutes = function(express, pathToControllerTree, controllerPath)
 // is the external API call that parses the path string in the
 // ``controllerToPathHash`` and generates an *absolute for the server* URL
 exports.getControllerUrl = function(controller, params) {
-	var thePath = controllerToPathHash[controller];
+	var thePath = controllerToPathHash[controller] || "";
 	for(var param in params) {
 		thePath = thePath.replace(new RegExp(":" + param + "\\?*", "g"), params[param]);
 	}
