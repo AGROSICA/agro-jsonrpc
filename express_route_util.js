@@ -54,6 +54,8 @@ function loadControllers(controllerPath, controllerObj) {
 	if(path.existsSync(controllerPath)) {
 		if(path.existsSync(path.join(controllerPath, 'controllers.js'))) {
 			controllerObj = utils.mergeObjs(controllerObj, require(path.join(path.resolve(controllerPath), 'controllers')));
+			for(var i in controllerObj) {
+			}
 		}
 		var pathChildren = fs.readdirSync(controllerPath);
 		for(var child in pathChildren) {
@@ -96,17 +98,17 @@ function buildRoutes(express, controllers, routeObj, currPath) {
 	for(var route in routeObj) {
 		if(typeof(routeObj[route]) == "string") {
 			var theMethod = defaultMethod;
-			var routeUrl = currPath != "" ? currPath + "." + route : route;
+			var routeUrl = currPath != "" ? path.join(currPath,  route) : route;
 			var controller = getController(controllers, routeObj[route]);
 			if(routeUrl.match(/^(get|post|put|del|all)/i)) {
 				theMethod = RegExp.$1.toLowerCase();
 				routeUrl = routeUrl.replace(/^(get|post|pul|del|all)/i, "");
 			}
 			controllerToPathHash[routeObj[route]] = routeUrl;
-			routeUrl = routeUrl != '/' ? routeUrl.replace(/\/$/, "") : '/'; 
+			routeUrl = routeUrl != '/' ? routeUrl.replace(/\/$/, "") : '/';
 			express[theMethod](routeUrl, controller);
 		} else if(typeof(routeObj[route] == "object")) {
-			buildRoutes(express, controllers, route, routeUrl);
+			buildRoutes(express, controllers, routeObj[route], path.join(currPath, route));
 		} else {
 			throw "Invalid Route Definition";
 		}
