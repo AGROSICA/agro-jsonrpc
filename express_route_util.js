@@ -98,12 +98,15 @@ function buildRoutes(express, controllers, routeObj, currPath) {
 	for(var route in routeObj) {
 		if(typeof(routeObj[route]) == "string") {
 			var theMethod = defaultMethod;
-			var routeUrl = currPath != "" ? path.join(currPath,  route) : route;
-			var controller = getController(controllers, routeObj[route]);
+			var routeUrl = route;
 			if(routeUrl.match(/^(get|post|put|del|all)/i)) {
 				theMethod = RegExp.$1.toLowerCase();
 				routeUrl = routeUrl.replace(/^(get|post|pul|del|all)/i, "");
+			} else {
+				theMethod = defaultMethod;
 			}
+			var routeUrl = currPath != "" ? path.join(currPath,  routeUrl) : routeUrl;
+			var controller = getController(controllers, routeObj[route]);
 			controllerToPathHash[routeObj[route]] = routeUrl;
 			routeUrl = routeUrl != '/' ? routeUrl.replace(/\/$/, "") : '/';
 			express[theMethod](routeUrl, controller);
