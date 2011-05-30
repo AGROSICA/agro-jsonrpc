@@ -54,8 +54,6 @@ function loadControllers(controllerPath, controllerObj) {
 	if(path.existsSync(controllerPath)) {
 		if(path.existsSync(path.join(controllerPath, 'controllers.js'))) {
 			controllerObj = utils.mergeObjs(controllerObj, require(path.join(path.resolve(controllerPath), 'controllers')));
-			for(var i in controllerObj) {
-			}
 		}
 		var pathChildren = fs.readdirSync(controllerPath);
 		for(var child in pathChildren) {
