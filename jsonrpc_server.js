@@ -46,11 +46,11 @@ function JSONRPC(scope) {
 			if(data instanceof Object) {
 				if(data.method) {
 					var result = "";
-					// If the method is defined in the scope and is marked as a
-					// nonblocking function, then a callback must be defined for
+					// If the method is defined in the scope and is not marked as a
+					// blocking function, then a callback must be defined for
 					// the function. The callback takes two parameters: the
 					// *result* of the function, and an *error* message.
-					if(scope[data.method] && scope[data.method].nonblocking) {
+					if(scope[data.method] && !scope[data.method].blocking) {
 						var callback = function(result, error) {
 							if(data.id) {
 								self.returnVal(response, {result:result, error:error, id:data.id});
@@ -82,12 +82,8 @@ function JSONRPC(scope) {
 					// A blocking function will *return* a value immediately or
 					// *throw* an error, so this portion consists only of a
 					// *try-catch* block, but is otherwise identical to the
-					// above nonblocking code. Because blocking code is a bad
-					// idea on Node.js, the *nonblocking* attribute should
-					// probably be reversed to a *blocking* attribute that must
-					// be explicitly stated, making the *nonblocking* behavior
-					// the default.
-					} else if(scope[data.method]) {
+					// above nonblocking code.
+					} else if(scope[data.method] && scope[data.method].blocking) {
 						try {
 							if(data.params && data.params instanceof Array) {
 								result = scope[data.method].apply(scope, data.params);
@@ -170,14 +166,14 @@ function JSONRPC(scope) {
 	}
 	return this;
 }
-// ## The *nonblocking* function
-// attaches the *nonblocking* attribute to any function passed to it, and then
+// ## The *blocking* function
+// attaches the *blocking* attribute to any function passed to it, and then
 // *return*s that function. This is used in the convention:
-//     var myRPCfunc = nonblocking(function() { ... });
-// This allows inline declaration of nonblocking RPC functions and produces a
+//     var myRPCfunc = blocking(function() { ... });
+// This allows inline declaration of blocking RPC functions and produces a
 // naturally-self-documenting source
-function nonblocking(func) {
-	func.nonblocking = true;
+function blocking(func) {
+	func.blocking = true;
 	return func;
 }
 
@@ -188,7 +184,7 @@ function nonblocking(func) {
 // Until WebSockets are finalized, there is no need to get this working in web
 // browsers.
 exports.JSONRPC = JSONRPC;
-exports.nonblocking = nonblocking;
+exports.blocking = blocking;
 exports.createJSONRPCserver = function(scope) {
 	return new JSONRPC(scope);
 };
