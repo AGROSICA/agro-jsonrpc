@@ -66,7 +66,7 @@ function JSONRPC(serverURL) {
 					try { 
 						var myResponse = JSON.parse(req.responseText);
 						responseHandler(myResponse.result, myResponse.error);
-					} catch {
+					} catch(ex) {
 						responseHandler(null, "Server did not return valid JSON-RPC response.");
 					}
 				// If anything else happened, provide a generic error message
@@ -118,7 +118,7 @@ function JSONRPC(serverURL) {
 		if(req.status == 200 || req.status == 500) { //Executed successfully, or function failed
 			try {
 				var myResponse = JSON.parse(req.responseText);
-			} catch {
+			} catch (ex){
 				throw "Server did not return valid JSON-RPC response.";
 			}
 			// The one true advantage of the *requestBlock* over *request* is
