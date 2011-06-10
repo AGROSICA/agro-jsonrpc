@@ -79,3 +79,14 @@ function errorOut(error, callback) {
 	return false;
 }
 exports.errorOut = errorOut;
+
+// ## Common Mongoose field validators
+// Enforce string length
+exports.fieldValidators = {
+	// Ensures a string is at least min characters and at most max characters
+	stringLength: function(min, max){
+		return function(v){
+			return v.length >= min && v.length <= max; 
+		};
+	}
+};
