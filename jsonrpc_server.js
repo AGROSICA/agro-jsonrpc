@@ -51,12 +51,19 @@ function JSONRPC(scope) {
 					// the function. The callback takes two parameters: the
 					// *result* of the function, and an *error* message.
 					if(scope[data.method] && !scope[data.method].blocking) {
-						var callback = function(result, error) {
+						var callback = function(result) {
+							var outObj = {};
 							if(data.id) {
-								self.returnVal(response, {result:result, error:error, id:data.id});
-							} else {
-								self.returnVal(response, {result:result, error:error});
+								outObj.id = data.id;
 							}
+							if(result instanceof Error) {
+								outObj.result = null;
+								outObj.error.message = result.message;
+							} else {
+								outObj.error = null;
+								outObj.result = result;
+							}
+							self.returnVal(response, outObj);
 						};
 						// This *try-catch* block seems pointless, since it is
 						// not possible to *catch* an error further into a
@@ -73,10 +80,16 @@ function JSONRPC(scope) {
 								scope[data.method].apply(scope, [callback]);
 							}
 						} catch(e) {
-							if(data.id) {
-								self.returnVal(response, {result:null, error:e, id:data.id});
+							var outErr = {};
+							if(e.message) {
+								outErr.message = e.message;
 							} else {
-								self.returnVal(response, {result:null, error:e});
+								outErr.message = e;
+							}
+							if(data.id) {
+								self.returnVal(response, {result:null, error:outErr, id:data.id});
+							} else {
+								self.returnVal(response, {result:null, error:outErr});
 							}
 						}
 					// A blocking function will *return* a value immediately or
@@ -98,22 +111,28 @@ function JSONRPC(scope) {
 								self.returnVal(response, {result:result, error:null});
 							}
 						} catch(e) {
-							if(data.id) {
-								self.returnVal(response, {result:null, error:e, id:data.id});
+							var outErr = {};
+							if(e.message) {
+								outErr.message = e.message;
 							} else {
-								self.returnVal(response, {result:null, error:e});
+								outErr.message = e;
+							}
+							if(data.id) {
+								self.returnVal(response, {result:null, error:outErr, id:data.id});
+							} else {
+								self.returnVal(response, {result:null, error:outErr});
 							}
 						}
 					// If the interpretation of the POSTed data fails at any
 					// point, be sure to return a meaningful error message.
 					} else {
-						self.returnVal(response, {result:null, error:"Requested method does not exist.", id:-1});
+						self.returnVal(response, {result:null, error:{message:"Requested method does not exist."}, id:-1});
 					}
 				} else {
-					self.returnVal(response, {result:null, error:"Did not receive valid JSON-RPC data.", id:-1});
+					self.returnVal(response, {result:null, error:{message:"Did not receive valid JSON-RPC data."}, id:-1});
 				}
 			} else {
-				self.returnVal(response, {result:null, error:"Did not receive valid JSON-RPC data.", id:-1});
+				self.returnVal(response, {result:null, error:{message:"Did not receive valid JSON-RPC data."}, id:-1});
 			}
 		});
 	};

@@ -60,9 +60,22 @@ function authenticateUser(userId, sessionCode, callback) {
 	if(verifyUser(userId, sessionCode)) {
 		return true;
 	} else {
-		callback(null, "Invalid Session");
+		callback(new Error("Invalid Session"));
 		return false;
 	}
 };
 exports.authenticateUser = authenticateUser;
 
+// ## The *errorOut* function
+// is a simple method for JSON-RPC purposes (client and server) to call a
+// specified callback on a specified error object, if it exists, and do so with
+// a *proper* Error object
+function errorOut(error, callback) {
+	if(error) {
+		if(error.message) { callback(new Error(error.message)); }
+		else { callback(new Error(error)); }
+		return true;
+	}
+	return false;
+}
+exports.errorOut = errorOut;

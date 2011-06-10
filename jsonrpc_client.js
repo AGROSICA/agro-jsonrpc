@@ -65,14 +65,21 @@ function JSONRPC(serverURL) {
 				if(req.status == 200 || req.status == 500) {
 					try { 
 						var myResponse = JSON.parse(req.responseText);
-						responseHandler(myResponse.result, myResponse.error);
+						if(myResponse.error) {
+							if(myResponse.error.message) {
+								return responseHandler(new Error(myResponse.error.message));
+							} else {
+								return responseHandler(new Error(myResponse.error));
+							}
+						}
+						responseHandler(myResponse.result);
 					} catch(ex) {
-						responseHandler(null, "Server did not return valid JSON-RPC response.");
+						responseHandler(new Error("Server did not return valid JSON-RPC response."));
 					}
 				// If anything else happened, provide a generic error message
 				} else {
-					responseHandler(null, "Status " + req.status +
-						": Could not communicate with server.");
+					responseHandler(new Error("Status " + req.status +
+						": Could not communicate with server."));
 				}
 			}
 		};
@@ -119,19 +126,23 @@ function JSONRPC(serverURL) {
 			try {
 				var myResponse = JSON.parse(req.responseText);
 			} catch (ex){
-				throw "Server did not return valid JSON-RPC response.";
+				throw new Error("Server did not return valid JSON-RPC response.");
 			}
 			// The one true advantage of the *requestBlock* over *request* is
 			// that errors can be *throw*n, and only the JSON-RPC response data
 			// (the *result*) needs to be *return*ed, so functions using this
 			// code path will look much nicer.
 			if(myResponse.error) {
-				throw myResponse.error;
+				if(myResponse.error.message) {
+					throw new Error(myResponse.error.message);
+				} else {
+					throw new Error(myResponse.error);
+				}
 			} else {
 				return myResponse.result;
 			}
 		} else {
-			throw "Could not communicate with server.";
+			throw new Error("Could not communicate with server.");
 		}
 	};
 	// ### The *register* function
