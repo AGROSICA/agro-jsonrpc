@@ -57,6 +57,8 @@ function JSONRPC(scope) {
 								outObj.id = data.id;
 							}
 							if(result instanceof Error) {
+								// TODO Add a config check for debug output
+								console.log(JSON.stringify(result));
 								outObj.result = null;
 								outObj.error = {message: result.message};
 							} else {
