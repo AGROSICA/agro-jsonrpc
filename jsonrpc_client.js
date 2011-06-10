@@ -63,19 +63,17 @@ function JSONRPC(serverURL) {
 				// internal server error, parse the returned JSON and call the
 				// provided callback with the JSON-RPC object (minus the *id*)
 				if(req.status == 200 || req.status == 500) {
+					var myResponse;
 					try { 
-						var myResponse = JSON.parse(req.responseText);
-						if(myResponse.error) {
-							if(myResponse.error.message) {
-								return responseHandler(new Error(myResponse.error.message));
-							} else {
-								return responseHandler(new Error(myResponse.error));
-							}
-						}
-						responseHandler(myResponse.result);
+						myResponse = JSON.parse(req.responseText);
 					} catch(ex) {
-						responseHandler(new Error("Server did not return valid JSON-RPC response."));
+						responseHandler(new Error("Server did not return valid JSON-RPC response: " + req.responseText));
 					}
+					if(myResponse.error) {
+						if(myResponse.error.message) { return responseHandler(new Error(myResponse.error.message)); }
+						else { return responseHandler(new Error(myResponse.error)); }
+					}
+					responseHandler(myResponse.result);
 				// If anything else happened, provide a generic error message
 				} else {
 					responseHandler(new Error("Status " + req.status +
