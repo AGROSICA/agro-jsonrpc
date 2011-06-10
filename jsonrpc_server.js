@@ -58,7 +58,7 @@ function JSONRPC(scope) {
 							}
 							if(result instanceof Error) {
 								outObj.result = null;
-								outObj.error.message = result.message;
+								outObj.error = {message: result.message};
 							} else {
 								outObj.error = null;
 								outObj.result = result;
