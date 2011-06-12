@@ -80,6 +80,23 @@ function errorOut(error, callback) {
 }
 exports.errorOut = errorOut;
 
+// ## The *mongoInsert* function
+// is a convenience function for inserting data into a specified MongoDB collection
+function mongoInsert(collection, inObject, callback) {
+	if(collection && collection.insert) {
+		collection.insert(inObject, {safe: true}, function(error, objects) {
+			if(error) {
+				if(error instanceof Error) { return callback(error); }
+				return callback(new Error(error));
+			}
+			return callback(objects[0]);
+		});
+	} else {
+		return callback(new Error("Invalid Collection"));
+	}
+}
+exports.mongoInsert = mongoInsert;
+
 // ## Common Mongoose field validators
 // Enforce string length
 exports.fieldValidators = {
