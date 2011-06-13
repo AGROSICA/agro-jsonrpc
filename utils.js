@@ -60,7 +60,9 @@ function authenticateUser(userId, sessionCode, callback) {
 	if(verifyUser(userId, sessionCode)) {
 		return true;
 	} else {
-		callback(new Error("Invalid Session"));
+		if(callback){
+			callback(new Error("Invalid Session"));
+		}
 		return false;
 	}
 };
