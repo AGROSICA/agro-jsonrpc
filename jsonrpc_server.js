@@ -131,9 +131,13 @@ function JSONRPC(scope) {
 						self.returnVal(response, {result:null, error:{message:"Requested method does not exist."}, id:-1});
 					}
 				} else {
+					// TODO Add a config check for debug output
+					console.log("Method not found: data = [" + JSON.stringify(data) + "]");
 					self.returnVal(response, {result:null, error:{message:"Did not receive valid JSON-RPC data."}, id:-1});
 				}
 			} else {
+				// TODO Add a config check for debug output
+				console.log("Data is not an object: data = [" + JSON.stringify(data) + "]");
 				self.returnVal(response, {result:null, error:{message:"Did not receive valid JSON-RPC data."}, id:-1});
 			}
 		});
