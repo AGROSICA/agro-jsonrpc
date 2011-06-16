@@ -24,7 +24,7 @@ if(typeof window === 'undefined') {
 // function names to be used by the developer using this JSON-RPC client.
 
 // The JSONRPC constructor *must* receive a server URL on initialization
-function JSONRPC(serverURL) {
+function JSONRPC(serverURL, options) {
 	// ### The *request* function
 	// is a non-blocking function that takes an arbitrary number of arguments,
 	// where the first argument is the remote method name to execute, the last
@@ -146,6 +146,9 @@ function JSONRPC(serverURL) {
 				return myResponse.result;
 			}
 		} else {
+			console.log(serverURL);
+			console.log(contents);
+			console.log(JSON.stringify(req));
 			throw new Error("Could not communicate with server.");
 		}
 	};
@@ -202,6 +205,22 @@ function JSONRPC(serverURL) {
 			singleReg(method);
 		}
 	};
+	// Parse any *options* provided to the client
+	// If no *options* object provided, create an empty one
+	if(typeof(options) != "object") {
+		options = {};
+	}
+	// *autoRegister* methods from the server unless explicitly told otherwise
+	if(!options.hasOwnProperty("autoRegister") || options.autoRegister) {
+		//this.register(this.requestBlock("rpc.methodList"));
+		var self = this;
+		this.request("rpc.methodList", function(methods) {
+			if(methods instanceof Error) { return; }
+			self.register(methods);
+		});
+		//Technically shouldn't be async, need to add sync support to
+		//Node.js XMLHttpRequest library
+	}
 	// Once the JSONRPC object has been properly initialized, return the object
 	// to the developer
 	return this;

@@ -189,6 +189,15 @@ function JSONRPC(scope) {
 	if(!scope || typeof(scope) != "object") {
 		scope = root;
 	}
+	// ### The *rpc.methodList* method
+	// is a JSON-RPC extension that returns a list of all methods in the scope
+	scope['rpc.methodList'] = function(callback) {
+		var methods = [];
+		for(var i in scope) {
+			methods.push(i);
+		}
+		callback(methods);
+	};
 	return this;
 }
 // ## The *blocking* function
