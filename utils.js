@@ -109,3 +109,12 @@ exports.fieldValidators = {
 		};
 	}
 };
+
+// ## Image URL provider
+// Provides the URL of an image based on information about it
+exports.getImageUrl = function(subsystem, imageId, size){
+	// TODO Load from a config?
+	var prefix = "https://s3.amazonaws.com/agrosica-";
+	return prefix + subsystem + "/" + imageId + "-" + size + ".jpeg";
+};
+
