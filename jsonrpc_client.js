@@ -5,7 +5,8 @@
 
 // If running in *Node.js*, load the XMLHttpRequest object
 if(typeof window === 'undefined') {
-	var XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
+	//var XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest; //npm version of XMLHttpRequest
+	var XMLHttpRequest = require('XMLHttpRequest').XMLHttpRequest; //Our fork of XMLHttpRequest
 }
 
 // ## The JSONRPC constructor
@@ -212,14 +213,7 @@ function JSONRPC(serverURL, options) {
 	}
 	// *autoRegister* methods from the server unless explicitly told otherwise
 	if(!options.hasOwnProperty("autoRegister") || options.autoRegister) {
-		//this.register(this.requestBlock("rpc.methodList"));
-		var self = this;
-		this.request("rpc.methodList", function(methods) {
-			if(methods instanceof Error) { return; }
-			self.register(methods);
-		});
-		//Technically shouldn't be async, need to add sync support to
-		//Node.js XMLHttpRequest library
+		this.register(this.requestBlock("rpc.methodList"));
 	}
 	// Once the JSONRPC object has been properly initialized, return the object
 	// to the developer
