@@ -118,3 +118,10 @@ exports.getImageUrl = function(subsystem, imageId, size){
 	return prefix + subsystem + "/" + imageId + "/" + size + ".jpeg";
 };
 
+// ## The *buildServerUrl* function
+// is a convenience function for constructing a JSON-RPC or other relatively static URL
+exports.buildServerUrl = function(configObj) {
+	return (configObj.ssl ? "https://" : "http://") +
+		configObj.host + (configObj.port ? ":" + configObj.port : "") +
+		(configObj.path ? configObj.path : "/");
+};
