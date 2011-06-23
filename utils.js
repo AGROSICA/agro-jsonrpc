@@ -125,3 +125,8 @@ exports.buildServerUrl = function(configObj) {
 		configObj.host + (configObj.port ? ":" + configObj.port : "") +
 		(configObj.path ? configObj.path : "/");
 };
+
+// ## Trim a string of whitespace
+exports.trim = function(string) {
+    return string.replace(/^\s*|\s*$/, '')
+}
