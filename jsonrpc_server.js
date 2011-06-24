@@ -156,8 +156,8 @@ function JSONRPC(scope) {
 			var outString = JSON.stringify(retVal);
 			response.writeHead(retVal.error?500:200, {
 				"Access-Control-Allow-Origin": "*",
-				"Content-Length": outString.length,
-				"Content-Type": "application/json"
+				"Content-Length": Buffer.byteLength(outString, 'utf8'),
+				"Content-Type": "application/json;charset=utf-8"
 			});
 			response.end(outString);
 		} else {
