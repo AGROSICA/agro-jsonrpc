@@ -126,7 +126,18 @@ exports.buildServerUrl = function(configObj) {
 		(configObj.path ? configObj.path : "/");
 };
 
-// ## Trim a string of whitespace
-exports.trim = function(string) {
-    return string.replace(/^\s*|\s*$/, '')
+// ## Trim a string or array of strings of whitespace, inline
+exports.trim = function(data) {
+	var trimString = function(string){
+		return string.replace(/^\s*|\s*$/, '');
+	};
+	
+    if(data instanceof Array){
+		data.forEach(function(value, index, data){
+			data[index] = trimString(value);
+		});
+	}else{
+		data = trimString(data); 
+	}
+	return;
 }
