@@ -1,4 +1,4 @@
-
+var http = require('http');
 var sha2 = require('./SHA2');
 
 // ## The *mergeObjs* function
@@ -141,3 +141,65 @@ exports.trim = function(data) {
 	}
 	return;
 }
+
+// ## The *makeJsonRpcServer* function
+// builds the JSON-RPC HTTP server functionality used by many of our Node.js servers
+exports.makeJsonRpcServer = function(config) {
+	// The possible HTTP methods
+	var handlePost, handleOptions, handleOther;
+	// The OPTIONS method to shut Firefox up
+	handleOptions = function(request, response) {
+		response.writeHead(200, {
+			"Access-Control-Allow-Origin": "*",
+			"Access-Control-Allow-Method": "POST, GET, OPTIONS",
+			"Access-Control-Allow-Headers": request.headers["access-control-request-headers"]
+		});
+		response.end();
+	};
+	// JSON-RPC server doesn't like getting non-JSON-RPC requests
+	handleOther = function(response) {
+		response.end("{result:null, error:\"Did not receive valid JSON-RPC data.\", id:-1}");
+	};
+	// Configuring the JSON-RPC server to handle requests as fast as possible
+	// requires creating a handler that only checks what needs to be checked
+	// at runtime, since these configurations are known from the beginning
+	// and only need to be done once.
+	if(config.privateRPC && config.trustedClients) { // Has a properly configured private RPC
+		if(config.trustedClients instanceof Array) { // Has many valid trusted clients
+			handlePost = function(request, response) {
+				var usePrivate = false;
+				for(var i = 0; i < config.trustedClients.length; i++) {
+					if(request.socket.remoteAddress.match(config.trustedClients[i])) {
+						usePrivate = true;
+						break;
+					}
+				}
+				if(usePrivate) {
+					config.privateRPC.handleJSON(request, response);
+				} else {
+					config.publicRPC.handleJSON(request, response);
+				}
+			};
+		} else { // Assume single RegExp or string can determine trusted clients
+			handlePost = function(request, response) {
+				if(request.socket.remoteAddress.match(config.trustedClients)) {
+					config.privateRPC.handleJSON(request, response);
+				} else {
+					config.publicRPC.handleJSON(request, response);
+				}
+			};
+		}
+	} else { // No private RPC, so can short-circuit entire handling function
+		handlePost = config.publicRPC.handleJSON;
+	}
+	// Start the JSON-RPC server
+	http.createServer(function(request, response) {
+		if(request.method == "POST") {
+			handlePost(request, response);
+		} else if(request.method == "OPTIONS") {
+			handleOptions(request, response);
+		} else {
+			handleOther(response);
+		}
+	}).listen(config.port);
+};
