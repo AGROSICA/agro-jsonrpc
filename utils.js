@@ -164,33 +164,45 @@ exports.makeJsonRpcServer = function(config) {
 	// requires creating a handler that only checks what needs to be checked
 	// at runtime, since these configurations are known from the beginning
 	// and only need to be done once.
-	if(config.privateRPC && config.trustedClients) { // Has a properly configured private RPC
+	if(config.privateRpc && config.trustedClients) { // Has a properly configured private RPC
 		if(config.trustedClients instanceof Array) { // Has many valid trusted clients
 			handlePost = function(request, response) {
 				var usePrivate = false;
 				for(var i = 0; i < config.trustedClients.length; i++) {
-					if(request.socket.remoteAddress.match(config.trustedClients[i])) {
+					if(config.trustedClients[i] instanceof RegExp &&
+						config.trustedClients[i].test(request.socket.remoteAddress)) {
+						usePrivate = true;
+						break;
+					} else if(config.trustedClients[i] == request.socket.remoteAddress) {
 						usePrivate = true;
 						break;
 					}
 				}
 				if(usePrivate) {
-					config.privateRPC.handleJSON(request, response);
+					config.privateRpc.handleJSON(request, response);
 				} else {
-					config.publicRPC.handleJSON(request, response);
+					config.publicRpc.handleJSON(request, response);
 				}
 			};
-		} else { // Assume single RegExp or string can determine trusted clients
+		} else if(config.trustedClients instanceof RegExp) { // A single RegExp to determine trusted clients
 			handlePost = function(request, response) {
-				if(request.socket.remoteAddress.match(config.trustedClients)) {
-					config.privateRPC.handleJSON(request, response);
+				if(config.trustedClients.test(request.socket.remoteAddress)) {
+					config.privateRpc.handleJSON(request, response);
 				} else {
-					config.publicRPC.handleJSON(request, response);
+					config.publicRpc.handleJSON(request, response);
+				}
+			};
+		} else { // Assume a string to match for a single trusted client
+			handlePost = function(request, response) {
+				if(config.trustedClients == request.socket.remoteAddress) {
+					config.privateRpc.handleJSON(request, response);
+				} else {
+					config.publicRpc.handleJSON(request, response);
 				}
 			};
 		}
 	} else { // No private RPC, so can short-circuit entire handling function
-		handlePost = config.publicRPC.handleJSON;
+		handlePost = config.publicRpc.handleJSON;
 	}
 	// Start the JSON-RPC server
 	http.createServer(function(request, response) {
