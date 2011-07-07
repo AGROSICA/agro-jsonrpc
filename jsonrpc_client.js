@@ -206,6 +206,11 @@ function JSONRPC(serverURL, options) {
 			singleReg(method);
 		}
 	};
+	// *__noSuchMethod__* will intercept a call to a nonexistent method and
+	// throw a legible error in this instance.
+	this.__noSuchMethod__ = function(arg) {
+		throw new Error(arg + " not registered with client");
+	};
 	// Parse any *options* provided to the client
 	// If no *options* object provided, create an empty one
 	if(typeof(options) != "object") {
