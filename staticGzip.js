@@ -15,15 +15,42 @@ var fs = require('fs'),
 		compress = require('compress'),
 		staticSend;
 try {
-	staticSend = require('connect').static.send
+	staticSend = require('connect').static.send;
 } catch (e) {
-	staticSend = require('express').static.send
+	staticSend = require('express').static.send;
 }
+
 /**
- * gzipped cache.
+ * Strip `Content-*` headers from `res`.
+ *
+ * @param {ServerResponse} res
+ * @api public
  */
 
-var gzippoCache = {};
+var removeContentHeaders = function(res){
+	Object.keys(res._headers).forEach(function(field){
+		if (0 === field.indexOf('content')) {
+			res.removeHeader(field);
+		}
+	});
+};
+
+/**
+ * gzipped in-memory cache.
+ */
+
+var gzippoCache = (function() {
+	var cache = {};
+	this.get = function(pathname) {
+		return cache[pathname];
+	};
+	this.set = function(pathname, cacheObj) {
+		var oldCache = typeof(cache[pathname]) == "object" ? cache[pathname] : undefined;
+		cache[pathname] = cacheObj;
+		return oldCache;
+	};
+	return this;
+})();
 
 /**
  * gzip file.
@@ -46,8 +73,10 @@ var gzippo = function(filename, charset, callback) {
  * Options:
  *
  *	-	`maxAge`  cache-control max-age directive, defaulting to 1 day
+ *	-	`clientMaxAge`  client cache-control max-age directive, defaulting to 1 week
  *	-	`matchType` - A regular expression tested against the Content-Type header to determine whether the response 
  *		should be gzipped or not. The default value is `/text|javascript|json/`.
+ *	-	`cacheStore` - An object that implements a simple get/set API for storing/retrieving cached data, defaulting to a built-in in-memory store
  *
  * Examples:
  *
@@ -68,7 +97,9 @@ var gzippo = function(filename, charset, callback) {
 exports = module.exports = function staticGzip(dirPath, options){
 	options = options || {};
 	var maxAge = options.maxAge || 86400000,
-	contentTypeMatch = options.contentTypeMatch || /text|javascript|json/;
+	contentTypeMatch = options.contentTypeMatch || /text|javascript|json/,
+	clientMaxAge = options.clientMaxAge || 604800000;
+	cacheStore = options.cacheStore || gzippoCache;
 	
 	if (!dirPath) throw new Error('You need to provide the directory to your static content.');
 	if (!contentTypeMatch.test) throw new Error('contentTypeMatch: must be a regular expression.');
@@ -82,26 +113,32 @@ exports = module.exports = function staticGzip(dirPath, options){
 			staticSend(req, res, next, o);
 		}
 		
-		function sendGzipped(cacheObj) {
-			contentType = contentType + (charset ? '; charset=' + charset : '');
+		function setHeaders(cacheObj) {
 			res.setHeader('Content-Type', contentType);
 			res.setHeader('Content-Encoding', 'gzip');
 			res.setHeader('Vary', 'Accept-Encoding');	
 			res.setHeader('Content-Length', cacheObj.content.length);
-			res.setHeader('Last-Modified', cacheObj.mtime);
-			res.setHeader('Date', (new Date()).toUTCString());
-			res.setHeader('Expires', (new Date((new Date()).getTime()+maxAge)).toUTCString());
+			res.setHeader('Last-Modified', cacheObj.mtime.toUTCString());
+			res.setHeader('Date', new Date().toUTCString());
+			res.setHeader('Expires', new Date(Date.now() + clientMaxAge).toUTCString());
+			res.setHeader('Cache-Control', 'public, max-age=' + (clientMaxAge / 1000));
+			res.setHeader('ETag', '"' + cacheObj.content.length + '-' + Number(cacheObj.mtime) + '"');
+		}
+		
+		function sendGzipped(cacheObj) {
+			setHeaders(cacheObj);
 			res.end(cacheObj.content, 'binary');
 		}
 		
 		function gzipAndSend(filename, gzipName, mtime) {
 			gzippo(filename, charset, function(gzippedData) {
-				gzippoCache[gzipName] = {
+				var cacheObj = {
 					'ctime': Date.now(),
 					'mtime': mtime,
 					'content': gzippedData
 				};
-				sendGzipped(gzippoCache[gzipName]);
+				cacheStore.set(gzipName, cacheObj);
+				sendGzipped(cacheObj);
 			});	
 		}
 		
@@ -115,6 +152,7 @@ exports = module.exports = function staticGzip(dirPath, options){
 				
 		contentType = mime.lookup(filename);
 		charset = mime.charsets.lookup(contentType);
+		contentType = contentType + (charset ? '; charset=' + charset : '');
 		acceptEncoding = req.headers['accept-encoding'] || '';
 
 		if (!contentTypeMatch.test(contentType)) {
@@ -135,31 +173,26 @@ exports = module.exports = function staticGzip(dirPath, options){
 
 			var base = path.basename(filename),
 					dir = path.dirname(filename),
-					gzipName = path.join(dir, base + '.gz');
-			
+					gzipName = path.join(dir, base + '.gz'),
+					cacheObj = cacheStore.get(gzipName);
 			if (req.headers['if-modified-since'] &&
-				gzippoCache[gzipName] &&
-				(new Date(gzippoCache[gzipName].mtime)).getTime() <= (new Date(req.headers['if-modified-since'])).getTime()) {
-				contentType = contentType + (charset ? '; charset=' + charset : '');
-				res.setHeader('Content-Type', contentType);
-				res.setHeader('Content-Encoding', 'gzip');
-				res.setHeader('Vary', 'Accept-Encoding');
-				res.setHeader('Last-Modified', gzippoCache[gzipName].mtime);
-				res.setHeader('Date', (new Date()).toUTCString());
-				res.setHeader('Expires', (new Date((new Date()).getTime()+maxAge)).toUTCString());
-				return res.send(304);
+				cacheObj &&
+				+cacheObj.mtime <= new Date(req.headers['if-modified-since']).getTime()) {
+				setHeaders(cacheObj);
+				removeContentHeaders(res);
+				res.statusCode = 304;
+				return res.end();
 			}
 					
-			//check for pre-compressed file 
-			//TODO: Look into placing into a loop and using dot notation for speed improvements. 
-			if (typeof gzippoCache[gzipName] === 'undefined') {
-				gzipAndSend(filename, gzipName, (new Date(stat.mtime)).toUTCString());
+			//TODO: check for pre-compressed file 
+			if (typeof cacheObj === 'undefined') {
+				gzipAndSend(filename, gzipName, stat.mtime);
 			} else {
-        if ((gzippoCache[gzipName].mtime < stat.mtime) || 
-          ((gzippoCache[gzipName].ctime + maxAge) < Date.now())) {
-					gzipAndSend(filename, gzipName, (new Date(stat.mtime)).toUTCString());
+				if ((cacheObj.mtime < stat.mtime) || 
+				((cacheObj.ctime + maxAge) < Date.now())) {
+					gzipAndSend(filename, gzipName, stat.mtime);
 				} else {
-					sendGzipped(gzippoCache[gzipName]);
+					sendGzipped(cacheObj);
 				}
 			}
 		});
