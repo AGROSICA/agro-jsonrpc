@@ -13,13 +13,13 @@
 // assigned to a scope are attached to attached to the anonymous scope block only
 // and cannot be accessed even from the *root* scope.
 function JSONRPC(scope) {
+	var self = this;
 	// ### The *handleJSON* function
 	// makes up the majority of the JSON-RPC server logic, handling the requests
 	// from clients, passing the call to the correct function, catching any
 	// errors the function may throw, and calling the function to return the
 	// results back to the client.
 	this.handleJSON = function(request, response) {
-		var self = this;
 		var DATA = "";
 		// In order to handle uploaded data from the client, event handlers for
 		// each received block of data and the end of the POST block must exist.
