@@ -25,6 +25,7 @@ exports.mergeObjs = mergeObjs;
 // simply marks the current key as the old key and the newly-provided key as
 // the master key, and informs the *Registration* server that it was successful
 function setMasterKey(masterKey) {
+	console.log("Received new master key");
 	global.registration.prevMasterKey = global.registration.currMasterKey;
 	global.registration.currMasterKey = masterKey;
 	return true;
