@@ -216,3 +216,20 @@ exports.makeJsonRpcServer = function(config) {
 		}
 	}).listen(config.port);
 };
+
+// ## The *locationToAddressLine* function
+// takes a location object and translates that into a string representation
+exports.locationToAddressLine = function(loc) {
+	var adr = loc.address;
+	if(adr.city && adr.region && adr.country) {
+		return adr.city + ", " + adr.region + ", " + adr.country;
+	} else if(adr.city && adr.region) {
+		return adr.city + ", " + adr.region;
+	} else if(adr.city && adr.country) {
+		return adr.city + ", " + adr.country;
+	} else if(adr.city) {
+		return adr.city;
+	} else { // Whu?
+		return "";
+	}
+};
