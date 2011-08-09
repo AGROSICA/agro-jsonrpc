@@ -5,8 +5,7 @@
 
 // If running in *Node.js*, load the XMLHttpRequest object
 if(typeof window === 'undefined') {
-	//var XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest; //npm version of XMLHttpRequest
-	var XMLHttpRequest = require('XMLHttpRequest').XMLHttpRequest; //Our fork of XMLHttpRequest
+	var XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
 }
 
 // ## The JSONRPC constructor
