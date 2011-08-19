@@ -56,13 +56,13 @@ function loadControllers(controllerPath, controllerObj) {
 			controllerObj = utils.mergeObjs(controllerObj, require(path.join(path.resolve(controllerPath), 'controllers')));
 		}
 		var pathChildren = fs.readdirSync(controllerPath);
-		for(var child in pathChildren) {
-			var childPath = path.resolve(path.join(controllerPath, pathChildren[child]));
+		for(var i = 0; i < pathChildren.length; i++) {
+			var childPath = path.resolve(path.join(controllerPath, pathChildren[i]));
 			if(fs.statSync(childPath).isDirectory()) {
-				if(!controllerObj[pathChildren[child]]) {
-					controllerObj[pathChildren[child]] = {};
+				if(!controllerObj[pathChildren[i]]) {
+					controllerObj[pathChildren[i]] = {};
 				}
-				controllerObj[pathChildren[child]] = loadControllers(childPath, controllerObj[pathChildren[child]]);
+				controllerObj[pathChildren[i]] = loadControllers(childPath, controllerObj[pathChildren[i]]);
 			}
 		}
 	} else {
@@ -77,9 +77,9 @@ function loadControllers(controllerPath, controllerObj) {
 function getController(controllers, controllerRoute) {
 	var controller = controllers;
 	var hierarchy = controllerRoute.split('.');
-	for(var level in hierarchy) {
-		if(controller[hierarchy[level]]) {
-			controller = controller[hierarchy[level]];
+	for(var i = 0; i < hierarchy.length; i++) {
+		if(controller[hierarchy[i]]) {
+			controller = controller[hierarchy[i]];
 		} else {
 			throw "Invalid Controller Path Found: " + hierarchy;
 		}
@@ -119,18 +119,19 @@ function buildRoutes(express, controllers, routeObj, currPath) {
 					express[theMethod](routeUrl, controller);
 				}
 			} else {
-				var controllers = [];
+				var expressCall = [];
 				for(var i = 0; i < routeObj[route].length; i++) {
-					controllers[i] = getController(controllers, routeObj[route][i]);
+					expressCall[i] = getController(controllers, routeObj[route][i]);
 					controllerToPathHash[routeObj[route][i]] = routeUrl;
 				}
 				routeUrl = routeUrl != '/' ? routeUrl.replace(/\/$/, "") : '/';
+				expressCall.unshift(routeUrl);
 				if(theMethod instanceof Array) {
 					for(var i = 0; i < theMethod.length; i++) {
-						express[theMethod[i]](routeUrl, controllers);
+						express[theMethod[i]].apply(express, expressCall);
 					}
 				} else {
-					express[theMethod](routeUrl, controllers);
+					express[theMethod].apply(express, expressCall);
 				}
 			}
 		} else if(typeof(routeObj[route] == "object")) {
