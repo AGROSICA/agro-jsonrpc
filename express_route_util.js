@@ -21,7 +21,7 @@
 //         '/': 'almanac.index',
 //         '/questions': {
 //           '/': 'almanac.questions.index',
-//           '/edit': 'almanac.questions.edit'
+//           'get,post/edit': ['common.requireLogin', 'almanac.questions.edit']
 //         }
 //       },
 //       '/social': {
@@ -94,20 +94,45 @@ function getController(controllers, controllerRoute) {
 // controllers to URLs, it builds the ``controllerToPathHash`` hash table.
 function buildRoutes(express, controllers, routeObj, currPath) {
 	for(var route in routeObj) {
-		if(typeof(routeObj[route]) == "string") {
+		if(typeof(routeObj[route]) == "string" || routeObj[route] instanceof Array) {
 			var theMethod = defaultMethod;
 			var routeUrl = route;
-			if(routeUrl.match(/^(get|post|put|del|all)/i)) {
+			if(routeUrl.match(/^(get|post|put|del|all)\//i)) { //Single method type
 				theMethod = RegExp.$1.toLowerCase();
 				routeUrl = routeUrl.replace(/^(get|post|pul|del|all)/i, "");
+			} else if(routeUrl.match(/^([adeglopstu,]+)\//i)) { //Multiple method types
+				theMethod = RegExp.$1.toLowerCase().split(",");
+				routeUrl = routeUrl.replace(/^([adeglopstu,]*)/i, "");
 			} else {
 				theMethod = defaultMethod;
 			}
-			var routeUrl = currPath != "" ? path.join(currPath,  routeUrl) : routeUrl;
-			var controller = getController(controllers, routeObj[route]);
-			controllerToPathHash[routeObj[route]] = routeUrl;
-			routeUrl = routeUrl != '/' ? routeUrl.replace(/\/$/, "") : '/';
-			express[theMethod](routeUrl, controller);
+			var routeUrl = currPath != "" ? path.join(currPath, routeUrl) : routeUrl;
+			if(typeof(routeObj[route]) == "string") {
+				var controller = getController(controllers, routeObj[route]);
+				controllerToPathHash[routeObj[route]] = routeUrl;
+				routeUrl = routeUrl != '/' ? routeUrl.replace(/\/$/, "") : '/';
+				if(theMethod instanceof Array) {
+					for(var i = 0; i < theMethod.length; i++) {
+						express[theMethod[i]](routeUrl, controller);
+					}
+				} else {
+					express[theMethod](routeUrl, controller);
+				}
+			} else {
+				var controllers = [];
+				for(var i = 0; i < routeObj[route].length; i++) {
+					controllers[i] = getController(controllers, routeObj[route][i]);
+					controllerToPathHash[routeObj[route][i]] = routeUrl;
+				}
+				routeUrl = routeUrl != '/' ? routeUrl.replace(/\/$/, "") : '/';
+				if(theMethod instanceof Array) {
+					for(var i = 0; i < theMethod.length; i++) {
+						express[theMethod[i]](routeUrl, controllers);
+					}
+				} else {
+					express[theMethod](routeUrl, controllers);
+				}
+			}
 		} else if(typeof(routeObj[route] == "object")) {
 			buildRoutes(express, controllers, routeObj[route], path.join(currPath, route));
 		} else {
