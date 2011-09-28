@@ -1,4 +1,5 @@
 var http = require('http');
+var https = require('https');
 var sha2 = require('./SHA2');
 
 // ## The *mergeObjs* function
@@ -205,8 +206,9 @@ exports.makeJsonRpcServer = function(config) {
 	} else { // No private RPC, so can short-circuit entire handling function
 		handlePost = config.publicRpc.handleJSON;
 	}
+	var server = (config.https ? https : http);
 	// Start the JSON-RPC server
-	http.createServer(function(request, response) {
+	server.createServer(function(request, response) {
 		if(request.method == "POST") {
 			handlePost(request, response);
 		} else if(request.method == "OPTIONS") {
