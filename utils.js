@@ -206,9 +206,8 @@ exports.makeJsonRpcServer = function(config) {
 	} else { // No private RPC, so can short-circuit entire handling function
 		handlePost = config.publicRpc.handleJSON;
 	}
-	var server = (config.https ? https : http);
 	// Start the JSON-RPC server
-	server.createServer(function(request, response) {
+	function server(request, response) {
 		if(request.method == "POST") {
 			handlePost(request, response);
 		} else if(request.method == "OPTIONS") {
@@ -216,7 +215,16 @@ exports.makeJsonRpcServer = function(config) {
 		} else {
 			handleOther(response);
 		}
-	}).listen(config.port);
+	}
+	if(config.https) {
+		https.createServer({
+			key: config.https.key,
+			cert: config.https.cert,
+			ca: config.https.ca
+		}, server).listen(config.port);
+	} else {
+		http.createServer(server).listen(config.port);
+	}
 };
 
 // ## The *locationToAddressLine* function
