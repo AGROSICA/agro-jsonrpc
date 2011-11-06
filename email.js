@@ -11,74 +11,88 @@ function Email(from, to, subject, body){
 	this.subject = subject;
 	this.body = body;
 	this.html = body;
-	this.attachments = [];
+	this.attachments = new Array();
 
-	/*privateRpcMethods.setEmailFrom = function(newEmail, from){
+	this.setEmailFrom = function(newEmail, from){
 		newEmail.from = from;
 	};
 
-	privateRpcMethods.setEmailReply = function(newEmail, reply){
+	this.setEmailReply = function(newEmail, reply){
 		newEmail.reply = reply;
 	};
 
-	privateRpcMethods.setEmailTo = function(newEmail, to){
+	this.setEmailTo = function(newEmail, to){
 		newEmail.to = to;
 	};
 
-	privateRpcMethods.addEmailTo = function(newEmail, to){
+	this.addEmailTo = function(newEmail, to){
 		newEmail.to += ", " + to;
 	};
 
-	privateRpcMethods.setEmailCC = function(newEmail, cc){
+	this.setEmailCC = function(newEmail, cc){
 		newEmail.cc = cc;
 	};
 
-	privateRpcMethods.addEmailCC = function(newEmail, cc){
+	this.addEmailCC = function(newEmail, cc){
 		newEmail.cc += ", " + cc;
 	};
 
-	privateRpcMethods.setEmailBCC = function(newEmail, bcc){
+	this.setEmailBCC = function(newEmail, bcc){
 		newEmail.bcc = bcc;
 	};
 
-	privateRpcMethods.addEmailBCC = function(newEmail, bcc){
+	this.addEmailBCC = function(newEmail, bcc){
 		newEmail.bcc += ", " + bcc;
 	};
 
-	privateRpcMethods.setEmailSubject = function(newEmail, subject){
+	this.setEmailSubject = function(newEmail, subject){
 		newEmail.subject = subject;
 	};
 
-	privateRpcMethods.setEmailText = function(newEmail, body){
+	this.setEmailText = function(newEmail, body){
 		newEmail.body = body;
 	};
 
-	privateRpcMethods.setEmailHTML = function(newEmail, html){
+	this.setEmailHTML = function(newEmail, html){
 		newEmail.html = html;
 	};
-	*/
+	
 	this.addAttachment = function(attachment, callback){
+		var self = this;
+		var content;
 		//get the filename portion of the attachment (i.e. whatever comes after the last /)
 		//attachment name itself if it is in the same directory
 		var filename = path.basename(attachment);
-		//check that attachment is valid
-		//check is file/exists
-		//check file type	
-		//check size
 		fs.readFile(attachment, function(err, content){
 			//process error message		
 			if(err){
-				callback(err);
+				callback(false, err);
 			}
 			else{
-				if(!this.attachments){
-					this.attachments = [];
-					console.log(this.attachments);
-					this.attachments.push({filename: filename, contents: content});
-					console.log(this.attachments);
-				}
+				self.attachments.push({"filename": filename, "contents": content});
+				callback(true, "success");
 			}
 		});
+	
+	};
+
+	this.addRelatedAttachment = function(cid, attachment, callback){
+		var self = this;
+		var content;
+		//get the filename portion of the attachment (i.e. whatever comes after the last /)
+		//attachment name itself if it is in the same directory
+		var filename = path.basename(attachment);
+		fs.readFile(attachment, function(err, content){
+			//process error message		
+			if(err){
+				callback(false, err);
+			}
+			else{
+				self.attachments.push({"filename": filename, "contents": content, cid: cid});
+				callback(true, "success");
+			}
+		});
+	
 	};
 
 	return this;
