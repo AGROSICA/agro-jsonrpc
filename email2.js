@@ -94,8 +94,10 @@ Email.prototype.addRelatedAttachment = function(cid, attachment, callback){
 			callback(true, "success");
 		}
 	});
-
+',
 };
+
+//Email.rpcClient = { host: 'localhost', port: 8007 };
 
 module.exports = Email;
 
