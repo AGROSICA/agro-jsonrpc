@@ -1,0 +1,10 @@
+{
+	"contributors": [
+		{"name": "David Ellis", "email": "david.ellis@agrosica.com"},
+		{"name": "Alain Rodriguez", "email": "alain.rodriguez@agrosica.com"},
+	],
+	"name": "agro-jsonrpc-client",
+	"version": "0.1",
+	"description": "The common (private) JSON-RPC client for Agrosica.",
+	"private": true
+}
