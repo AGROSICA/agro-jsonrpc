@@ -8,7 +8,7 @@
 	"description": "The common (private) JSON-RPC client for Agrosica.",
 	"main": "jsonrpc_client.js",
 	"dependencies": {
-		"xmlhttprequest": "*"
+		"xmlhttprequest": "1.3.0"
 	},
 	"private": true
 }
