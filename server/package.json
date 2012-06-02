@@ -6,6 +6,5 @@
 	"name": "agro-jsonrpc-server",
 	"version": "0.1.0",
 	"description": "The common (private) JSON-RPC server for Agrosica.",
-	"main": "jsonrpc_server.js",
-	"private": true
+	"main": "jsonrpc_server.js"
 }
